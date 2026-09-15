@@ -10,53 +10,26 @@ latency for every request.
 
 ## Architecture
 
-```
-                     ┌───────────────────────────┐
-                     │   data/sample_docs/*.txt   │
-                     └─────────────┬─────────────┘
-                                   │
-                          1. INGESTION
-                 (src/ingestion: loaders + chunker)
-        SemanticChunker (optional) → RecursiveCharacterTextSplitter
-                                   │
-                                   ▼
-                     ┌───────────────────────────┐
-                     │  2. VECTOR STORE (Chroma)  │
-                     │  local, on-disk, no server │
-                     └─────────────┬─────────────┘
-                                   │
-     user query ──────────────────┤
-                                   ▼
-                 3. QUERY ANALYZER (complexity classifier)
-                    simple  ─────────────────  complex
-                       │                          │
-                       ▼                          ▼
-              4. ADAPTIVE RETRIEVER (embedding search + MMR re-rank)
-                 top_k = 1-3            top_k = 5-8
-                       │                          │
-                       └───────────┬──────────────┘
-                                   ▼
-              5. CONTEXTUAL COMPRESSOR (LLMChainExtractor /
-                 EmbeddingsFilter) + HARD TOKEN BUDGET ENFORCER
-                                   │
-                                   ▼
-              6. PROMPT ASSEMBLER (static/cached system prompt
-                 + compressed context + question)
-                                   │
-                                   ▼
-              7. MODEL ROUTER (OpenAI-compatible API)
-                 simple/factual → cheap model (gpt-4o-mini)
-                 complex/multi-hop → strong model (gpt-4o)
-                                   │
-                                   ▼
-                        LLM generates answer
-                                   │
-                                   ▼
-       8. CONVERSATION MEMORY (ConversationSummaryBufferMemory)
-          summarizes older turns instead of resending full history
-                                   │
-                                   ▼
-       9. TOKEN/COST TRACKER → logs/usage.jsonl (tokens, cost, latency)
+The pipeline has nine stages, each aimed at cutting tokens/cost without
+losing answer quality. See **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**
+for the full component diagram, a request sequence diagram, module
+responsibilities, and the design rationale behind each stage.
+
+```mermaid
+flowchart TB
+    DOCS["data/sample_docs/*.txt"] --> ING["1. Ingestion<br/>semantic/recursive chunking"]
+    ING --> VS[("2. Vector Store<br/>Chroma, local on-disk")]
+    Q(["user query"]) --> QA["3. Query Analyzer<br/>simple vs complex"]
+    VS --> RET
+    QA -- "top_k 1-3 (simple) /<br/>5-8 (complex)" --> RET["4. Adaptive Retriever<br/>embedding search + MMR re-rank"]
+    RET --> COMP["5. Contextual Compressor<br/>EmbeddingsFilter / LLMChainExtractor<br/>+ hard token budget enforcer"]
+    COMP --> PA["6. Prompt Assembler<br/>cached static system prompt<br/>+ compressed context"]
+    QA -- "model choice" --> RTR["7. Model Router<br/>cheap (gpt-4o-mini) vs<br/>strong (gpt-4o)"]
+    PA --> RTR
+    RTR --> LLM(["LLM answer"])
+    MEM["8. Conversation Memory<br/>ConversationSummaryBufferMemory"] --> PA
+    LLM --> TRK["9. Token/Cost Tracker"]
+    TRK --> LOG[("logs/usage.jsonl")]
 ```
 
 ## Repository layout
@@ -74,9 +47,19 @@ langchain-adaptive-rag-agent/
   evals/           # optimized-vs-baseline token/cost benchmark script
   tests/           # unit tests for chunker, retriever, router, compressor, tracker
   data/sample_docs/ # sample documents for quick testing
+  docs/            # detailed architecture documentation + diagrams
   requirements.txt / pyproject.toml
   .env.example
 ```
+
+## Documentation
+
+- **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** — component diagram, a
+  full request sequence diagram, the ingestion data flow, a table of module
+  responsibilities, the design rationale behind each optimization (why MMR,
+  why a heuristic classifier, why a hard token budget after compression,
+  etc.), and extension points for swapping the vector store, compressor, or
+  document loaders.
 
 ## Setup
 
