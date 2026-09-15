@@ -1,0 +1,35 @@
+Acme Cloud Platform - Onboarding Guide
+======================================
+
+Step 1: Create an organization
+Sign up at acme.cloud/signup and create an organization. An organization is
+the top-level container for all your projects, billing, and team members.
+You will be prompted to verify your email address before proceeding.
+
+Step 2: Create your first project
+Projects group related resources (compute instances, storage buckets,
+databases) under a shared quota and IAM policy. We recommend creating
+separate projects for development, staging, and production environments to
+keep resource limits and access controls isolated.
+
+Step 3: Invite team members
+From the organization settings page, invite teammates by email and assign
+them a role: Owner, Admin, Developer, or Viewer. Owners have full control
+including billing; Developers can create and modify resources but cannot
+change billing or delete the organization; Viewers have read-only access.
+
+Step 4: Configure your first resource
+Use the console, CLI (`acme` command), or Terraform provider to provision
+your first compute instance or storage bucket. New organizations receive
+$100 in free trial credit, valid for 30 days, to explore the platform before
+adding a payment method.
+
+Step 5: Set up monitoring and alerts
+Enable the built-in monitoring dashboard to track resource usage, and
+configure alert thresholds (e.g. CPU > 80% for 10 minutes) to be notified via
+email or webhook before issues affect production traffic.
+
+Support channels
+Community support is available via the public forum. Paid plans include
+email support with a 24-hour response SLA, and Enterprise plans include a
+dedicated Slack channel with a 1-hour response SLA during business hours.

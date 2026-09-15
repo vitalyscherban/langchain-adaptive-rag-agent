@@ -1,0 +1,32 @@
+[project]
+name = "langchain-adaptive-rag-agent"
+version = "0.1.0"
+description = "Token-optimized adaptive RAG knowledge/support assistant built with LangChain."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+dependencies = [
+    "langchain>=1.4.0",
+    "langchain-classic>=1.0.8",
+    "langchain-openai>=0.2.0",
+    "langchain-community>=0.3.0",
+    "langchain-chroma>=0.1.4",
+    "langchain-experimental>=0.3.0",
+    "chromadb>=0.5.0",
+    "tiktoken>=0.7.0",
+    "python-dotenv>=1.0.1",
+    "pydantic>=2.7.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-mock>=3.14.0",
+]
+
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["src*", "evals*"]
