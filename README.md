@@ -60,6 +60,12 @@ langchain-adaptive-rag-agent/
   why a heuristic classifier, why a hard token budget after compression,
   etc.), and extension points for swapping the vector store, compressor, or
   document loaders.
+- **[docs/AZURE_ARCHITECTURE.md](docs/AZURE_ARCHITECTURE.md)** — proposed
+  target architecture for running this as an internal Azure-hosted API
+  service: component mapping to Azure OpenAI/AI Search/Container
+  Apps/Cosmos DB/Key Vault, request and ingestion flow diagrams, an
+  identity/networking diagram, module-by-module migration notes, and a
+  phased rollout plan.
 
 ## Setup
 
@@ -161,3 +167,35 @@ average token/cost savings, and writes a detailed `evals/report.json`.
 
 To benchmark using real OpenAI embeddings instead, set
 `EVAL_USE_REAL_EMBEDDINGS=true` and ensure `OPENAI_API_KEY` is configured.
+
+### Approximate cost savings
+
+Results from the current `evals/report.json` (8 sample queries against
+`data/sample_docs`):
+
+| | Token savings | Cost savings |
+|---|---|---|
+| **Simple queries** (routed to `gpt-4o-mini`) | 75–81% | 43–47% |
+| **Complex queries** (routed to `gpt-4o`) | 32–36% | 18–21% |
+| **Average of per-query %** | ~55% | ~32% |
+| **Aggregate $ (weighted by actual spend)** | — | **~21%** |
+
+Notes:
+
+- Simple queries save the most because the naive baseline always retrieves
+  `top_k=10` chunks regardless of need, while the adaptive retriever narrows
+  to `top_k=1-3` for simple questions.
+- Complex queries save proportionally less (~20% cost) because they
+  legitimately need more context (`top_k=5-8`) and route to the pricier
+  `gpt-4o`.
+- The aggregate cost-savings figure (~21%) is lower than the ~32%
+  average-of-percentages because complex/strong-model queries dominate total
+  dollar spend — a query mix skewed toward complex questions will land
+  closer to ~20% overall savings, while a mix skewed toward simple/FAQ-style
+  questions will land closer to ~45%.
+- This benchmark runs offline with a deterministic hashing-based embedder,
+  not real OpenAI embeddings, and uses only 8 sample queries against small
+  sample docs, so treat these numbers as directional (relative savings vs.
+  an unoptimized baseline) rather than an absolute production cost forecast.
+  Run with `EVAL_USE_REAL_EMBEDDINGS=true` against your own document set for
+  a more realistic estimate.
